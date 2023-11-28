@@ -19,6 +19,7 @@ list_urls = {
     6:'https://tmk.minzdrav12.ru',
 }
 
+
 help_msg = '/list - список стендов \n { номер стенда } - версия и дата обновления'
 def get_stand_version(stand_number) -> dict:
     scr_url = '{url}/{location}'.format(url=list_urls[stand_number],location=vertion_file_name)
