@@ -5,7 +5,7 @@ import ssl
 context = ssl._create_unverified_context()
 
 bot = telebot.TeleBot('5800611516:AAG_gbX0BS5VXMsChPWJTix2WjVnI0leTjI', parse_mode='HTML')
-list_stands = {
+list_stands: dict = {
     1:'Гостелемед',
     2:'ФМБА',
     3:'Свердловская область',
@@ -16,10 +16,12 @@ list_stands = {
     8:'Дагестан',
     9:'Бурятия',
     10:'Астрахань',
-    11:'Пенза'
+    11:'Пенза',
+    12:'Московская область'
 }
-vertion_file_name = 'version.txt'
-list_urls = {
+vertion_file_name: str = 'version.txt'
+
+list_urls: dict = {
     1:'https://gostelemed.ru',
     2:'https://tmk.fmba.gov.ru',
     3:'https://doctor.mis66.ru',
@@ -30,10 +32,11 @@ list_urls = {
     8:'https://tmk.k-vrachu.ru',
     9:'https://tmk.burmed.ru',
     10:'https://telemed30.doctor30.ru',
-    11:'https://vrach.promed58.ru'
+    11:'https://vrach.promed58.ru',
+    12:'https://tmk.telemed.mosreg.ru'
 }
 
-help_msg = '<code>/list - список стендов\n/all - версии всех стендов\n{ номер стенда } - версия и дата обновления</code>'
+help_msg = "/list - список стендов\n/all - версии всех стендов\n{ номер стенда } - версия и дата обновления"
 
 def get_all_stand_version():
     about_all_stand_msg = ''
@@ -47,7 +50,7 @@ def get_all_stand_version():
         item = str(item).strip()
         name = name.strip()
         msg = msg.strip()
-        about_all_stand_msg += f'{item:<5}<b>{name:<35}</b>{msg:<10}\n'
+        about_all_stand_msg += f'{item:<3}<b>{name:<22}</b>{msg:<6}\n'
     about_all_stand_msg = f'<code>{about_all_stand_msg}</code>'
     return about_all_stand_msg
 def get_stand_version(stand_number):
@@ -70,6 +73,7 @@ def fetch_stand_version(stand_number) -> str:
             stand.append('')
     try:
         stand_msg = '{stand}\nВерсия приложения: {vertion}\nДата обновления: {date} {time} {zone}\n'.format(stand=list_stands[stand_number], vertion=stand[0], date=stand[1], time=stand[2], zone=stand[3])
+        # stand_msg = '<a href="{list_urls[stand_number]}">{stand}<a>\nВерсия приложения: {vertion}\nДата обновления: {date} {time} {zone}\n'.format(stand=list_stands[stand_number], vertion=stand[0], date=stand[1], time=stand[2], zone=stand[3])
     except IndexError:
         stand_msg = '{stand}\nВерсия приложения {vertion}\n'.format(stand=list_stands[stand_number],vertion='менее 1.71')
     stand_msg = f'<code>{stand_msg}</code>'
@@ -78,7 +82,7 @@ def fetch_stand_version(stand_number) -> str:
 def stand_list_msg():
     list_msg = ''
     for i, name in list_stands.items():
-        list_msg = list_msg + f'{i:<5}<a href="{list_urls[i]}">{name:<35}</a><a href="{list_urls[i]}"></a>\n'
+        list_msg = list_msg + f'{i:<5}<a href="{list_urls[i]}">{name:<20}</a><a href="{list_urls[i]}"></a>\n'
     list_msg = f'<code>{list_msg}</code>'
     return list_msg
 
@@ -100,7 +104,7 @@ def get_text_messages(message):
             about_stand_msg = fetch_stand_version(stand_number)
             bot.send_message(message.chat.id, about_stand_msg)
         except KeyError:
-            len_dict_msg = 'Номер стенда не можeт превышать {len_dict}'.format(len_dict=len(list_stands))
+            len_dict_msg = 'Номер стенда не можeт превышать {len_dict}\n/list - список стендов \n/all - версии всех стендов'.format(len_dict=len(list_stands))
             bot.send_message(message.chat.id, len_dict_msg)
     elif input_msg == "/help":
         bot.send_message(message.from_user.id, help_msg)
