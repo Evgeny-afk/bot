@@ -32,7 +32,7 @@ list_urls: dict = {
     8:'https://tmk.k-vrachu.ru',
     9:'https://tmk.burmed.ru',
     10:'https://telemed30.doctor30.ru',
-    11:'https://vrach.promed58.ru',
+    11:'https://doctor.promed58.ru',
     12:'https://tmk.telemed.mosreg.ru'
 }
 

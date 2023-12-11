@@ -8,9 +8,14 @@ import socket
 
 #### Variables ####
 zabbix_metrics_log_file = '/tmp/zabbix_metrics_log_file.log'
-zabbix_metrics_file = '/tmp/zabbix_metrics_file'
+zabbix_metrics_file = '/tmp/zabbix_metrics'
 cryptopro_cert_expired_period = 30
 cryptopro_port = 9060
+gorush_port = {
+    'push': 8088,
+    'voip': 8081
+}
+
 server_ip = '127.0.0.1'
 services_port_dict = {
     'app': 9011,
@@ -20,7 +25,7 @@ services_port_dict = {
     'postgresql': 5432,
     # 'rabbitmq': 5672,
     # 'reddis': 6379,
-    # 'test': 63342,
+    # 'test.py': 63342,
 }
 ######################
 
@@ -42,8 +47,7 @@ def define_server_role() -> str:
 
 ##### Metrics ####
 ##### CryptoPro cert ####
-def check_cryptopro_cert():
-    metric_name = 'cryptopro_cert_expire'
+def check_cryptopro_cert() -> list:
     src_url = 'http://{ip}:{port}/certificates'.format(ip='127.0.0.1', port=cryptopro_port)
     try:
         with urllib.request.urlopen(src_url) as response:
@@ -51,28 +55,74 @@ def check_cryptopro_cert():
             status = cert_info.pop('status')
             if status == 'ok':
                 cert_list = cert_info.pop('certificates')
-                check_cryptopro_cert_valid_time(cert_list)
+                return cert_list
             else:
-                write_to_metrics(metric_name, 1)
                 write_to_log('Сервис КриптоПро недоступен')
     except:
-        write_to_metrics(metric_name, 1)
         write_to_log('Сервис КриптоПро недоступен')
 
-def check_cryptopro_cert_valid_time(cert_list):
-    metric_name = 'cryptopro_cert_expire'
+def check_cryptopro_cert_valid_time():
+    metric_name = 'cryptoprocertexpire'
+    result = ''
+    metric_status = 0
+    metric_value = 0
     current_time = int(datetime.datetime.now().timestamp())
     cryptopro_cert_expired_seconds = int(cryptopro_cert_expired_period) * 24 * 60 * 60
-    for cert in cert_list:
-        if cert['hasPrivateKey']:
+    try:
+        cert_list = check_cryptopro_cert()
+        for cert in cert_list:
+            # if cert['hasPrivateKey']:
             cert_serial = cert['serialNumber']
             cert_valid_to = cert.pop('valid').pop('to')
+            metric_msg = cert_valid_to.split(' ')[0]
             cert_valid_time = int(datetime.datetime.strptime(cert_valid_to, "%d.%m.%Y %H:%M:%S").timestamp())
             expire_time = cert_valid_time - current_time
             if expire_time < cryptopro_cert_expired_seconds:
-                write_to_metrics(metric_name, 1, cert_serial)
+                metric_status = 1
+                result = '"{metric_name}": {{"status": "{metric_status}", "value": "{metric_value}", "msg": "{metric_msg}"}}'.format(metric_name=metric_name, metric_status=metric_status, metric_value=metric_value, metric_msg=metric_msg)
+                return result
             else:
-                write_to_metrics(metric_name, 0, cert_serial)
+                result = '"{metric_name}": {{"status": "{metric_status}", "value": "{metric_value}", "msg": "{metric_msg}"}}'.format(metric_name=metric_name, metric_status=metric_status, metric_value=metric_value, metric_msg=metric_msg)
+    except:
+        metric_status = 1
+        metric_msg = 'Не удалось получить список сертификатов'
+        result = '"{metric_name}": {{"status": "{metric_status}", "value": "{metric_value}", "msg": "{metric_msg}"}}'.format(metric_name=metric_name, metric_status=metric_status, metric_value=metric_value, metric_msg=metric_msg)
+    return result
+######################
+
+#### GoRush certs valid time ####
+
+######################
+
+#### GoRush ios push_error ####
+def gorush_ios_push_errors():
+    metric_name = 'gorushpusherrors'
+    result = ''
+    metric_status = 0
+    metric_value = 0
+    metric_msg = ''
+    for app, port in gorush_port.items():
+        src_url = 'http://{ip}:{port}/api/stat/app'.format(ip='127.0.0.1', port=port)
+        try:
+            with urllib.request.urlopen(src_url) as response:
+                ios_push_errors = json.loads(response.read())
+                ios_push_errors = int(ios_push_errors['ios']['push_error'])
+                if not ios_push_errors:
+                    metric_value = ios_push_errors
+                    metric_msg = app
+                    result = '"{metric_name}": {{"status": "{metric_status}", "value": "{metric_value}", "msg": "{metric_msg}"}}'.format(metric_name=metric_name, metric_status=metric_status, metric_value=metric_value, metric_msg=metric_msg)
+                else:
+                    metric_value = ios_push_errors
+                    metric_msg = 'Ok'
+                    result = '"{metric_name}": {{"status": "{metric_status}", "value": "{metric_value}", "msg": "{metric_msg}"}}'.format(metric_name=metric_name, metric_status=metric_status, metric_value=metric_value, metric_msg=metric_msg)
+        except:
+            metric_value = 1
+            metric_msg = 'Не удалось получить список сертификатов'
+            result = '"{metric_name}": {{"status": "{metric_status}", "value": "{metric_value}", "msg": "{metric_msg}"}}'.format(metric_name=metric_name, metric_status=metric_status, metric_value=metric_value, metric_msg=metric_msg)
+            write_to_log('Не удалось получить список сертификатов')
+    return result
+###################### ####
+
 ######################
 
 ##### Write to files ####
@@ -81,18 +131,20 @@ def write_to_log(msg):
         _log_string = '[{date}] {msg} \n'.format(date=datetime.datetime.now(), msg=msg)
         log_file.write(_log_string)
 
-def write_to_metrics(metric, result, *msg):
+def write_to_metrics(*msg):
+    msg = ', '.join(msg)
     with open(zabbix_metrics_file, 'a') as metrics_file:
-        _metrics_string = '{metric} {result} \n'.format(metric=metric, msg=msg, result=result )
-        # _metrics_string = '{metric}{{{msg}}} {result} \n'.format(metric=metric, msg=msg, result=result )
-        metrics_file.write(_metrics_string)
+        metrics_string = f'{{"metrics": {{{msg}}}}}'
+        metrics_file.write(metrics_string)
 ######################
 
 #### Main ####
 def create_metrics():
     server_role =define_server_role()
     if server_role == 'app':
-        check_cryptopro_cert()
+        cryptopro_cert = check_cryptopro_cert_valid_time()
+        gorus_err = gorush_ios_push_errors()
+        write_to_metrics(cryptopro_cert, gorus_err)
     if server_role == 'media':
         pass
     if server_role == 's3':
@@ -102,7 +154,7 @@ def create_metrics():
     if server_role == 'db':
         pass
 
-#### Begin ####
+### Begin ####
 write_to_log('Начало сбора метрик')
 try:
     os.remove(zabbix_metrics_file)
@@ -112,6 +164,16 @@ metrics = create_metrics()
 write_to_log('Завершение сбора метрик')
 
 
+
+
+
+# metrics = {
+#     'metric_name': {
+#         'status': 1,
+#         'value': '',
+#         'msg': ''
+#     }
+# }
 
 
 # fmba_backup_time{backup=\""$ndbs"_DB_Backups\"} `date +%s`\n
@@ -130,4 +192,7 @@ write_to_log('Завершение сбора метрик')
 #     if len(sys.argv) > 1:
 #         globals()['choice_of_action'](sys.argv[1:])
 #     else:
-#         write_to_log('Oтсутствуют аргументы')
+# #         write_to_log('Oтсутствуют аргументы')
+# curl http://127.0.0.1:9060/certificates
+# docker exec -i esiaauthservice-cryptopro-1 certmgr -list
+#
