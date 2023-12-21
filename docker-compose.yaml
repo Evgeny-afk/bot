@@ -1,7 +1,7 @@
 version: '3.5'
 services:
   bot:
-    image: registry.doctis.tech/devops/ansible_gostelemed/bot:test.py
+    image: registry.doctis.tech/devops/ansible_gostelemed/bot:latest
     network_mode: "host"
     extra_hosts:
     - "gostelemed.ru:192.168.1.37"

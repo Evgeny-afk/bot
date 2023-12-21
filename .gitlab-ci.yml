@@ -1,0 +1,32 @@
+variables:
+  APP_TAG: latest
+
+stages:
+  - build
+  - deploy
+
+build_images_develop_stand_job:
+  stage: build
+  script:
+    - docker login -u gitlab-ci-token -p ${CI_JOB_TOKEN} ${CI_REGISTRY}
+    - docker build  -t "${CI_REGISTRY_IMAGE}:${APP_TAG}" -f Dockerfile .
+    - docker push ""${CI_REGISTRY_IMAGE}:${APP_TAG}""
+    - echo -e "Docker образ доступные для скачивания:\n"${CI_REGISTRY_IMAGE}:${APP_TAG}""
+  tags:
+    - gostelemed
+
+deploy_job:
+  stage: deploy
+  script:
+    - UUID=$(cat /proc/sys/kernel/random/uuid)
+    - echo -e "\e[0Ksection_start:`date +%s`:deploy_section_${UUID}\r\e[0K"
+    - echo "prepare ssh client"
+    - eval $(ssh-agent -s)
+    - echo "$SSH_KEY" | ssh-add -
+    - mkdir -p ~/.ssh && chmod 700 ~/.ssh
+    - ssh-keyscan -T 120 -p $SSH_PORT $SSH_HOST > ~/.ssh/known_hosts
+    - COMMAND="docker compose down && docker compose pull && docker compose up -d"
+    - ssh -o StrictHostKeyChecking=no -t $SSH_USER@$SSH_HOST -p $SSH_PORT "time (docker login -u gitlab-ci-token -p ${CI_JOB_TOKEN} ${CI_REGISTRY} && cd ${DEPLOY_DIR} && ${COMMAND})"
+    - echo -e "\e[0Ksection_end:`date +%s`:deploy_section_${UUID}\r\e[0K"
+  tags:
+    - gostelemed

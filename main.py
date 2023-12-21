@@ -59,7 +59,6 @@ def get_stand_version(stand_number):
         with urllib.request.urlopen(scr_url,context=context) as response:
            stand_msg = str(response.read(), 'utf-8')
            stand_msg = stand_msg.split(' ')
-           print(stand_msg)
     except:
         try:
             stand_request = urllib.request.Request(
@@ -72,10 +71,8 @@ def get_stand_version(stand_number):
             with urllib.request.urlopen(stand_request) as response:
                 stand_msg = str(response.read(), 'utf-8')
                 stand_msg = stand_msg.split(' ')
-                print(stand_msg)
         except:
             stand_msg = ' '
-            print('exept')
             return stand_msg
     return stand_msg
 
@@ -88,7 +85,6 @@ def fetch_stand_version(stand_number) -> str:
             stand.append('')
     try:
         stand_msg = '{stand}\nВерсия приложения: {vertion}\nДата обновления: {date} {time} {zone}\n'.format(stand=list_stands[stand_number], vertion=stand[0], date=stand[1], time=stand[2], zone=stand[3])
-        # stand_msg = '<a href="{list_urls[stand_number]}">{stand}<a>\nВерсия приложения: {vertion}\nДата обновления: {date} {time} {zone}\n'.format(stand=list_stands[stand_number], vertion=stand[0], date=stand[1], time=stand[2], zone=stand[3])
     except IndexError:
         stand_msg = '{stand}\nВерсия приложения {vertion}\n'.format(stand=list_stands[stand_number],vertion='менее 1.71')
     stand_msg = f'<code>{stand_msg}</code>'
