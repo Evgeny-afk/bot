@@ -59,9 +59,24 @@ def get_stand_version(stand_number):
         with urllib.request.urlopen(scr_url,context=context) as response:
            stand_msg = str(response.read(), 'utf-8')
            stand_msg = stand_msg.split(' ')
+           print(stand_msg)
     except:
-        stand_msg = ' '
-        return stand_msg
+        try:
+            stand_request = urllib.request.Request(
+                scr_url,
+                data=None,
+                headers={
+                    'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 13_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.5 Mobile/15E148 Safari/604.1'
+                }
+            )
+            with urllib.request.urlopen(stand_request) as response:
+                stand_msg = str(response.read(), 'utf-8')
+                stand_msg = stand_msg.split(' ')
+                print(stand_msg)
+        except:
+            stand_msg = ' '
+            print('exept')
+            return stand_msg
     return stand_msg
 
 def fetch_stand_version(stand_number) -> str:

@@ -7,5 +7,5 @@ services:
     - "gostelemed.ru:192.168.1.37"
 
 
-# docker build -t gitlab.doctis.tech:5001/devops/ansible_gostelemed/bot:test.py -f Dockerfile .
-# docker push gitlab.doctis.tech:5001/devops/ansible_gostelemed/bot:test.py
+# docker build -t gitlab.doctis.tech:5001/devops/ansible_gostelemed/bot:test -f Dockerfile .
+# docker push gitlab.doctis.tech:5001/devops/ansible_gostelemed/bot:test
